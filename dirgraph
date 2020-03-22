@@ -14,7 +14,7 @@ print_size()
 # $1 = destination dir
 explore_dir()
 {
-    for f in eval echo $1
+    for f in "$1"/* "$1"/.[!.]*
     do
     if [ "$REGEX_PATTERN" ];then
         matches_count=$(basename "${f}" | grep -Ec "$REGEX_PATTERN" 2>/dev/null)
@@ -54,7 +54,7 @@ explore_dir()
         fi
     elif [ -d "$f" ]; then
         dircount=$((dircount+1))
-        explore_dir "$f/*"
+        explore_dir "$f"
     fi
     done 
 }
@@ -125,7 +125,7 @@ if [ "$REGEX_PATTERN" ];then
 fi
 #variables init
 filecount=0
-dircount=0
+dircount=1 #always contains root dir
 L100B=0
 L1KiB=0
 L10KiB=0
@@ -143,7 +143,7 @@ if [ "$normalize" = "1" ]; then
     #boga="$(tput cols)"
     if [ -t 0 ]; then
         max="$(tput cols)"
-        max=$((max-12-1)) ##line maxlenght-1-category print length
+        max=$((max-12-1)) #line maxlenght-1-category print length
     else
         max=79
     fi

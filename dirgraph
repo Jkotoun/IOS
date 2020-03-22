@@ -16,11 +16,15 @@ explore_dir()
 {
     for f in eval echo $1
     do
-    
-        if [ "$REGEX_PATTERN" ];then
-            if echo "$(basename "${f}")"| grep -Eq "$REGEX_PATTERN";then
-        continue
-    fi
+    if [ "$REGEX_PATTERN" ];then
+        matches_count=$(basename "${f}" | grep -Ec "$REGEX_PATTERN" 2>/dev/null)
+        operation_result="$?"
+        if [ "$operation_result" -eq "2" ]; then
+            echo "Regular expression format error">&2
+            exit 1
+        elif [ ! "$matches_count" -eq "0" ];then
+            continue
+        fi
     fi
     if [ -f "$f" ]; then
         if [ ! -r "$f" ];then
@@ -50,7 +54,7 @@ explore_dir()
         fi
     elif [ -d "$f" ]; then
         dircount=$((dircount+1))
-        explore_dir ""$f"/*"
+        explore_dir "$f/*"
     fi
     done 
 }
@@ -58,14 +62,14 @@ explore_dir()
 max()
 {
     max=$1
-    for i in $@
+    for i in "$@"
     do
-        if [ $i -gt $max ]; then
-            max=$i
+        if [ "$i" -gt "$max" ]; then
+            max="$i"
         fi
         shift
     done
-    echo $max
+    echo "$max"
 }
 #$1 - dividend
 #$2 - divisor
@@ -108,11 +112,14 @@ then
 fi
 
 #REGEX from user cant match root dir 
-if [ "$REGEX_PATTERN" ];
-then
-    if echo "$(basename "${DIR}")" | grep -Eq "$REGEX_PATTERN";
-    then
-        echo "FILE_ERE regular expression must not match root directory" >&2
+if [ "$REGEX_PATTERN" ];then
+    matches_count=$(basename "${DIR}" | grep -Ec "$REGEX_PATTERN" 2>/dev/null)
+    operation_result="$?"
+    if [ "$operation_result" -eq "2" ]; then
+        echo "Regular expression format error">&2
+        exit 1
+    elif [ ! "$matches_count" -eq "0" ];then
+        echo "Regular expression must not match root dir name">&2
         exit 1
     fi
 fi
@@ -130,7 +137,7 @@ L1GiB=0
 GE1GiB=0
 
 #call function for recursive search through folders
-explore_dir $DIR
+explore_dir "$DIR"
 
 if [ "$normalize" = "1" ]; then
     #boga="$(tput cols)"
@@ -143,32 +150,32 @@ if [ "$normalize" = "1" ]; then
     #most occured size of file 
     maxfile=$(max $L100B $L1KiB $L10KiB $L100KiB $L1MiB $L10MiB $L100MiB $L1GiB $GE1GiB)
     #max hashed doesnt fit line - normalize
-    if [ $maxfile -gt $max ]; then
-        rate=`echo "$maxfile/$max" | bc -l`
-        L100B=$(div_and_ceil $L100B $rate)
-        L1KiB=$(div_and_ceil $L1KiB $rate)
-        L10KiB=$(div_and_ceil $L10KiB $rate)
-        L100KiB=$(div_and_ceil $L100KiB $rate)
-        L1MiB=$(div_and_ceil $L1MiB $rate)
-        L10MiB=$(div_and_ceil $L10MiB $rate)
-        L100MiB=$(div_and_ceil $L100MiB $rate)
-        L1GiB=$(div_and_ceil $L1GiB $rate)
-        GE1GiB=$(div_and_ceil $GE1GiB $rate)
+    if [ "$maxfile" -gt "$max" ]; then
+        rate=$(echo "$maxfile/$max" | bc -l)
+        L100B=$(div_and_ceil "$L100B" "$rate")
+        L1KiB=$(div_and_ceil "$L1KiB" "$rate")
+        L10KiB=$(div_and_ceil "$L10KiB" "$rate")
+        L100KiB=$(div_and_ceil "$L100KiB" "$rate")
+        L1MiB=$(div_and_ceil "$L1MiB" "$rate")
+        L10MiB=$(div_and_ceil "$L10MiB" "$rate")
+        L100MiB=$(div_and_ceil "$L100MiB" "$rate")
+        L1GiB=$(div_and_ceil "$L1GiB" "$rate")
+        GE1GiB=$(div_and_ceil "$GE1GiB" "$rate")
     fi
 fi
 echo "Root directory: $DIR"
 echo "Directories: $dircount"
 echo "All files: $filecount"
 echo "File size histogram:"
-printf "  <100 B  : ";print_size $L100B ; printf "\n"
-printf "  <1 KiB  : ";print_size $L1KiB ; printf "\n"
-printf "  <10 KiB : ";print_size $L10KiB ; printf "\n"
-printf "  <100 KiB: ";print_size $L100KiB ; printf "\n"
-printf "  <1 MiB  : ";print_size $L1MiB ; printf "\n"
-printf "  <10 MiB : ";print_size $L10MiB ; printf "\n"
-printf "  <100 MiB: ";print_size $L100MiB ; printf "\n"
-printf "  <1 GiB  : ";print_size $L1GiB ; printf "\n"
-printf "  >=1 GiB : ";print_size $GE1GiB ; printf "\n"
+printf "  <100 B  : ";print_size "$L100B" ; printf "\n"
+printf "  <1 KiB  : ";print_size "$L1KiB" ; printf "\n"
+printf "  <10 KiB : ";print_size "$L10KiB" ; printf "\n"
+printf "  <100 KiB: ";print_size "$L100KiB" ; printf "\n"
+printf "  <1 MiB  : ";print_size "$L1MiB" ; printf "\n"
+printf "  <10 MiB : ";print_size "$L10MiB" ; printf "\n"
+printf "  <100 MiB: ";print_size "$L100MiB" ; printf "\n"
+printf "  <1 GiB  : ";print_size "$L1GiB" ; printf "\n"
+printf "  >=1 GiB : ";print_size "$GE1GiB" ; printf "\n"
 if [ ! $exitcode -eq 0 ]; then
     echo "Access to some files denied">&2
     exit $exitcode
